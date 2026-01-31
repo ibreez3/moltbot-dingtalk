@@ -28,6 +28,11 @@ export async function monitorDingTalkProvider(
     throw new Error("DingTalk config not found");
   }
 
+  // Log startup
+  if (runtime.logger) {
+    runtime.logger.info("[DingTalk] monitorDingTalkProvider starting");
+  }
+
   // Set runtime environment
   runtimeEnv = runtime;
   setDingTalkBotEnv(runtime);
@@ -59,19 +64,40 @@ export async function monitorDingTalkProvider(
     },
   });
 
+  if (runtime.logger) {
+    runtime.logger.info("[DingTalk] Starting WebSocket connection...");
+  }
+
   // Start WebSocket connection
-  await startDingTalkBot(dingtalkCfg);
+  try {
+    await startDingTalkBot(dingtalkCfg);
+  } catch (err) {
+    if (runtime.logger) {
+      runtime.logger.error("[DingTalk] Failed to start bot:", err);
+    }
+    throw err;
+  }
 
   // Handle abort signal
   abortSignal.addEventListener("abort", () => {
+    if (runtime.logger) {
+      runtime.logger.info("[DingTalk] Abort signal received, stopping bot");
+    }
     stopDingTalkBot();
   });
+
+  if (runtime.logger) {
+    runtime.logger.info("[DingTalk] Bot started, monitoring connection...");
+  }
 
   // Keep the connection alive
   return new Promise((resolve) => {
     // This promise never resolves - the connection stays alive
     // until the abort signal is received
     abortSignal.addEventListener("abort", () => {
+      if (runtime.logger) {
+        runtime.logger.info("[DingTalk] Monitor ending");
+      }
       resolve();
     });
   });
