@@ -89,3 +89,12 @@ export interface DingTalkStreamMessage {
   };
   data: string;
 }
+
+// Probe result type
+export interface DingTalkProbeResult {
+  ok: boolean;
+  error?: string;
+  appKey?: string;
+  botName?: string;
+  botUserId?: string;
+}

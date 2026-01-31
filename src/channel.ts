@@ -5,7 +5,8 @@ import {
 } from "openclaw/plugin-sdk";
 import type { DingTalkConfig, ResolvedDingTalkAccount } from "./types.js";
 import { sendMessageDingTalk } from "./send.js";
-import { startDingTalkBot, stopDingTalkBot, setDingTalkBotEnv } from "./bot.js";
+import { normalizeDingTalkTarget, looksLikeDingTalkId } from "./targets.js";
+import { probeDingTalk } from "./probe.js";
 
 const meta = {
   id: "dingtalk",
@@ -29,7 +30,7 @@ export const dingtalkPlugin: ChannelPlugin<ResolvedDingTalkAccount> = {
       entry.replace(/^(dingtalk|user|userId):/i, ""),
     notifyApproval: async ({ cfg, id }) => {
       await sendMessageDingTalk({
-        cfg,
+        cfg: cfg.channels?.dingtalk as DingTalkConfig,
         to: id,
         text: PAIRING_APPROVED_MESSAGE,
       });
@@ -124,25 +125,97 @@ export const dingtalkPlugin: ChannelPlugin<ResolvedDingTalkAccount> = {
       },
     }),
   },
-  start: async ({ api, account }) => {
-    if (!account.configured) {
-      api.logger.warn("[DingTalk] Account not configured, skipping start");
-      return;
-    }
-
-    // Set runtime environment for bot
-    setDingTalkBotEnv(api.runtime);
-
-    // Get the full config from api.config (account only has resolved fields)
-    const fullConfig = api.config.channels?.dingtalk || {};
-
-    // Start WebSocket connection with full config
-    await startDingTalkBot(fullConfig as any);
-
-    api.logger.info("[DingTalk] Plugin started");
+  security: {
+    collectWarnings: ({ cfg }) => {
+      const dingtalkCfg = cfg.channels?.dingtalk as DingTalkConfig | undefined;
+      const defaultGroupPolicy = (cfg.channels as Record<string, { groupPolicy?: string }> | undefined)?.defaults?.groupPolicy;
+      const groupPolicy = dingtalkCfg?.groupPolicy ?? defaultGroupPolicy ?? "allowlist";
+      if (groupPolicy !== "open") return [];
+      return [
+        `- DingTalk groups: groupPolicy="open" allows any member to trigger (mention-gated). Set channels.dingtalk.groupPolicy="allowlist" + channels.dingtalk.groupAllowFrom to restrict senders.`,
+      ];
+    },
   },
-  stop: async ({ api }) => {
-    await stopDingTalkBot();
-    api.logger.info("[DingTalk] Plugin stopped");
+  setup: {
+    resolveAccountId: () => DEFAULT_ACCOUNT_ID,
+    applyAccountConfig: ({ cfg }) => ({
+      ...cfg,
+      channels: {
+        ...cfg.channels,
+        dingtalk: {
+          ...cfg.channels?.dingtalk,
+          enabled: true,
+        },
+      },
+    }),
+  },
+  messaging: {
+    normalizeTarget: normalizeDingTalkTarget,
+    targetResolver: {
+      looksLikeId: looksLikeDingTalkId,
+      hint: "<conversationId>",
+    },
+  },
+  outbound: {
+    sendText: async ({ target, text }, { cfg }) => {
+      return await sendMessageDingTalk({
+        cfg: cfg.channels?.dingtalk as DingTalkConfig,
+        conversationId: target,
+        text,
+      });
+    },
+    sendMarkdown: async ({ target, markdown }, { cfg }) => {
+      return await sendMessageDingTalk({
+        cfg: cfg.channels?.dingtalk as DingTalkConfig,
+        conversationId: target,
+        markdown,
+      });
+    },
+  },
+  status: {
+    defaultRuntime: {
+      accountId: DEFAULT_ACCOUNT_ID,
+      running: false,
+      lastStartAt: null,
+      lastStopAt: null,
+      lastError: null,
+      port: null,
+    },
+    buildChannelSummary: ({ snapshot }) => ({
+      configured: snapshot.configured ?? false,
+      running: snapshot.running ?? false,
+      lastStartAt: snapshot.lastStartAt ?? null,
+      lastStopAt: snapshot.lastStopAt ?? null,
+      lastError: snapshot.lastError ?? null,
+      port: snapshot.port ?? null,
+      probe: snapshot.probe,
+      lastProbeAt: snapshot.lastProbeAt ?? null,
+    }),
+    probeAccount: async ({ cfg }) =>
+      await probeDingTalk(cfg.channels?.dingtalk as DingTalkConfig | undefined),
+    buildAccountSnapshot: ({ account, runtime, probe }) => ({
+      accountId: account.accountId,
+      enabled: account.enabled,
+      configured: account.configured,
+      running: runtime?.running ?? false,
+      lastStartAt: runtime?.lastStartAt ?? null,
+      lastStopAt: runtime?.lastStopAt ?? null,
+      lastError: runtime?.lastError ?? null,
+      port: runtime?.port ?? null,
+      probe,
+    }),
+  },
+  gateway: {
+    startAccount: async (ctx) => {
+      const { monitorDingTalkProvider } = await import("./monitor.js");
+      const dingtalkCfg = ctx.cfg.channels?.dingtalk as DingTalkConfig | undefined;
+      ctx.log?.info(`starting dingtalk provider (mode: stream)`);
+      return monitorDingTalkProvider({
+        config: ctx.cfg,
+        runtime: ctx.runtime,
+        abortSignal: ctx.abortSignal,
+        accountId: ctx.accountId,
+      });
+    },
   },
 };

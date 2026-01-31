@@ -30,6 +30,12 @@ export {
   setDingTalkBotEnv,
 } from "./src/bot.js";
 
+// Monitor export
+export { monitorDingTalkProvider } from "./src/monitor.js";
+
+// Probe export
+export { probeDingTalk } from "./src/probe.js";
+
 // Target exports
 export {
   normalizeDingTalkTarget,
@@ -49,6 +55,7 @@ export type {
   DingTalkOutboundMessage,
   DingTalkRuntime,
   DingTalkStreamMessage,
+  DingTalkProbeResult,
 } from "./src/types.js";
 
 const plugin = {
