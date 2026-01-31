@@ -1,27 +1,17 @@
 {
   "name": "moltbot-dingtalk",
-  "version": "1.0.3",
+  "version": "1.0.0",
   "type": "module",
-  "description": "MoltBot DingTalk Channel plugin - AI Card streaming with session management",
+  "description": "OpenClaw DingTalk channel plugin - AI Card streaming with session management",
   "license": "ISC",
-  "main": "dist/index.js",
   "files": [
-    "dist",
-    "openclaw.plugin.json",
-    "README.md",
-    "INSTALL.md",
-    "CLAUDE.md",
-    ".env.example"
+    "index.ts",
+    "src",
+    "openclaw.plugin.json"
   ],
-  "scripts": {
-    "dev": "nodemon --exec tsx src/index.ts",
-    "build": "tsc",
-    "prepack": "npm run build",
-    "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ibreez3/moltbot-dingtalk.git"
   },
   "keywords": [
     "openclaw",
@@ -30,16 +20,11 @@
     "钉钉",
     "chatbot",
     "ai",
-    "channel"
+    "claude"
   ],
-  "author": "",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ibreez3/moltbot-dingtalk.git"
-  },
   "openclaw": {
     "extensions": [
-      "./dist/index.js"
+      "./index.ts"
     ],
     "channel": {
       "id": "dingtalk",
@@ -61,20 +46,16 @@
   },
   "dependencies": {
     "axios": "^1.13.4",
-    "dotenv": "^17.2.3",
-    "form-data": "^4.0.5",
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@types/form-data": "^2.2.1",
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.0.10",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "eslint": "^9.39.2",
-    "nodemon": "^3.1.11",
-    "prettier": "^3.8.1",
+    "openclaw": "2026.1.29",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.29"
   }
 }

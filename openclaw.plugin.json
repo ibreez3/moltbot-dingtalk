@@ -1,17 +1,9 @@
 {
-  "name": "moltbot-dingtalk",
-  "version": "1.0.3",
-  "description": "MoltBot DingTalk Channel plugin - AI Card streaming with session management",
-  "type": "channel",
-  "main": "dist/index.js",
-  "channel": {
-    "id": "dingtalk",
-    "label": "DingTalk",
-    "selectionLabel": "DingTalk (钉钉)",
-    "docsPath": "/channels/dingtalk",
-    "docsLabel": "dingtalk",
-    "blurb": "DingTalk enterprise messaging with AI Card streaming support.",
-    "aliases": ["钉钉"],
-    "order": 60
+  "id": "dingtalk",
+  "channels": ["dingtalk"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
   }
 }
