@@ -133,8 +133,11 @@ export const dingtalkPlugin: ChannelPlugin<ResolvedDingTalkAccount> = {
     // Set runtime environment for bot
     setDingTalkBotEnv(api.runtime);
 
-    // Start WebSocket connection
-    await startDingTalkBot(account as any);
+    // Get the full config from api.config (account only has resolved fields)
+    const fullConfig = api.config.channels?.dingtalk || {};
+
+    // Start WebSocket connection with full config
+    await startDingTalkBot(fullConfig as any);
 
     api.logger.info("[DingTalk] Plugin started");
   },
