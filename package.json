@@ -1,6 +1,6 @@
 {
   "name": "moltbot-dingtalk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "MoltBot DingTalk Channel plugin - AI Card streaming with session management",
   "license": "ISC",
@@ -17,7 +17,6 @@
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
     "prepack": "npm run build",
-    "prepare": "npm run build",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
