@@ -1,0 +1,32 @@
+# Source files
+src/
+*.ts
+
+# Development files
+.eslintrc.js
+.prettierrc
+tsconfig.json
+
+# Dependencies
+node_modules/
+
+# Build artifacts that should be included
+!dist/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Test
+coverage/
+
+# Cache
+*.tsbuildinfo

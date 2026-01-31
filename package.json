@@ -1,23 +1,35 @@
 {
   "name": "moltbot-dingtalk",
   "version": "1.0.0",
-  "description": "MoltBot Channel for DingTalk - WebSocket bridge for DingTalk enterprise bot",
+  "description": "MoltBot Channel for DingTalk - AI Card streaming with session management",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
+    "prepack": "npm run build",
+    "prepare": "npm run build",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "type-check": "tsc --noEmit"
   },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "INSTALL.md",
+    "CLAUDE.md",
+    ".env.example"
+  ],
   "keywords": [
     "moltbot",
     "dingtalk",
     "websocket",
     "bot",
-    "stream"
+    "stream",
+    "ai-card",
+    "openclaw"
   ],
   "author": "",
   "license": "ISC",
