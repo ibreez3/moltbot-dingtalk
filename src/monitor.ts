@@ -28,10 +28,12 @@ export async function monitorDingTalkProvider(
     throw new Error("DingTalk config not found");
   }
 
+  // Get log function from runtime (not runtime.logger!)
+  const log = runtime?.log ?? console.log;
+  const error = runtime?.error ?? console.error;
+
   // Log startup
-  if (runtime.logger) {
-    runtime.logger.info("[DingTalk] monitorDingTalkProvider starting");
-  }
+  log("[DingTalk] monitorDingTalkProvider starting");
 
   // Set runtime environment
   runtimeEnv = runtime;
@@ -42,62 +44,46 @@ export async function monitorDingTalkProvider(
     config: dingtalkCfg,
     logger: {
       info: (...args: unknown[]) => {
-        if (runtime.logger) {
-          runtime.logger.info("[DingTalk]", ...args);
-        }
+        log("[DingTalk]", ...args);
       },
       warn: (...args: unknown[]) => {
-        if (runtime.logger) {
-          runtime.logger.warn("[DingTalk]", ...args);
-        }
+        log("[DingTalk]", ...args);
       },
       error: (...args: unknown[]) => {
-        if (runtime.logger) {
-          runtime.logger.error("[DingTalk]", ...args);
-        }
+        error("[DingTalk]", ...args);
       },
       debug: (...args: unknown[]) => {
-        if (runtime.logger) {
-          runtime.logger.debug("[DingTalk]", ...args);
+        if (runtime.debug) {
+          runtime.debug("[DingTalk]", ...args);
         }
       },
     },
   });
 
-  if (runtime.logger) {
-    runtime.logger.info("[DingTalk] Starting WebSocket connection...");
-  }
+  log("[DingTalk] Starting WebSocket connection...");
 
   // Start WebSocket connection
   try {
     await startDingTalkBot(dingtalkCfg);
   } catch (err) {
-    if (runtime.logger) {
-      runtime.logger.error("[DingTalk] Failed to start bot:", err);
-    }
+    error("[DingTalk] Failed to start bot:", err);
     throw err;
   }
 
   // Handle abort signal
   abortSignal.addEventListener("abort", () => {
-    if (runtime.logger) {
-      runtime.logger.info("[DingTalk] Abort signal received, stopping bot");
-    }
+    log("[DingTalk] Abort signal received, stopping bot");
     stopDingTalkBot();
   });
 
-  if (runtime.logger) {
-    runtime.logger.info("[DingTalk] Bot started, monitoring connection...");
-  }
+  log("[DingTalk] Bot started, monitoring connection...");
 
   // Keep the connection alive
   return new Promise((resolve) => {
     // This promise never resolves - the connection stays alive
     // until the abort signal is received
     abortSignal.addEventListener("abort", () => {
-      if (runtime.logger) {
-        runtime.logger.info("[DingTalk] Monitor ending");
-      }
+      log("[DingTalk] Monitor ending");
       resolve();
     });
   });
