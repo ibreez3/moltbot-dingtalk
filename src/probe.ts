@@ -1,5 +1,5 @@
+import axios from "axios";
 import type { DingTalkConfig } from "./types.js";
-import { createDingTalkClient } from "./client.js";
 import { ensureDingTalkCredentials } from "./accounts.js";
 
 export interface DingTalkProbeResult {
@@ -12,6 +12,7 @@ export interface DingTalkProbeResult {
 
 /**
  * Probe DingTalk API to verify credentials and connectivity
+ * Uses OAuth token endpoint as a simple connectivity test
  */
 export async function probeDingTalk(cfg?: DingTalkConfig): Promise<DingTalkProbeResult> {
   const creds = ensureDingTalkCredentials(cfg);
@@ -23,27 +24,51 @@ export async function probeDingTalk(cfg?: DingTalkConfig): Promise<DingTalkProbe
   }
 
   try {
-    const client = createDingTalkClient(cfg!);
-
-    // Use the bot info API as a simple connectivity test
-    const response = await client.getBotInfo();
-
-    // DingTalk API response structure
-    if (response.errcode !== 0) {
-      return {
-        ok: false,
+    // Use the OAuth endpoint as a simple connectivity test
+    // If we can get an access token, credentials are valid and API is reachable
+    const response = await axios.post(
+      "https://api.dingtalk.com/v1.0/oauth2/accessToken",
+      {
         appKey: creds.appKey,
-        error: `API error: ${response.errmsg || `code ${response.errcode}`}`,
+        appSecret: creds.appSecret,
+      },
+      {
+        timeout: 10000,
+      },
+    );
+
+    if (response.data && response.data.accessToken) {
+      return {
+        ok: true,
+        appKey: creds.appKey,
       };
     }
 
     return {
-      ok: true,
+      ok: false,
       appKey: creds.appKey,
-      botName: response.botName,
-      botUserId: response.botUserId,
+      error: "Invalid response from OAuth endpoint",
     };
   } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const statusCode = err.response?.status;
+      const message = err.response?.data?.errorMessage || err.message;
+
+      if (statusCode === 401) {
+        return {
+          ok: false,
+          appKey: creds.appKey,
+          error: "Authentication failed: invalid appKey or appSecret",
+        };
+      }
+
+      return {
+        ok: false,
+        appKey: creds.appKey,
+        error: `API error (${statusCode}): ${message}`,
+      };
+    }
+
     return {
       ok: false,
       appKey: creds.appKey,
