@@ -1,8 +1,18 @@
 {
   "name": "moltbot-dingtalk",
-  "version": "1.0.1",
-  "description": "MoltBot Channel for DingTalk - AI Card streaming with session management",
+  "version": "1.0.2",
+  "type": "module",
+  "description": "MoltBot DingTalk Channel plugin - AI Card streaming with session management",
+  "license": "ISC",
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "INSTALL.md",
+    "CLAUDE.md",
+    ".env.example"
+  ],
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
@@ -14,73 +24,41 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "type-check": "tsc --noEmit"
   },
-  "files": [
-    "dist",
-    "openclaw.plugin.json",
-    "README.md",
-    "INSTALL.md",
-    "CLAUDE.md",
-    ".env.example"
-  ],
   "keywords": [
+    "openclaw",
     "moltbot",
     "dingtalk",
-    "websocket",
-    "bot",
-    "stream",
-    "ai-card",
-    "openclaw"
+    "钉钉",
+    "chatbot",
+    "ai",
+    "channel"
   ],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "openclaw": {
-    "type": "channel",
-    "name": "dingtalk",
-    "displayName": "DingTalk Channel",
-    "description": "DingTalk enterprise app bot with AI Card streaming and session management",
-    "version": "1.0.0",
-    "entry": "dist/index.js",
-    "config": {
-      "dingtalk": {
-        "enabled": true,
-        "clientId": "",
-        "clientSecret": "",
-        "gatewayToken": "",
-        "gatewayPassword": "",
-        "sessionTimeout": 1800000,
-        "enableMediaUpload": true,
-        "systemPrompt": "",
-        "dmPolicy": "open",
-        "groupPolicy": "open",
-        "debug": false
-      }
-    }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ibreez3/moltbot-dingtalk.git"
   },
-  "openclaw.extensions": {
-    "channels": [
-      {
-        "type": "dingtalk",
-        "name": "dingtalk",
-        "description": "DingTalk enterprise app bot channel",
-        "enabled": true,
-        "config": {
-          "dingtalk": {
-            "enabled": true,
-            "clientId": "",
-            "clientSecret": "",
-            "gatewayToken": "",
-            "gatewayPassword": "",
-            "sessionTimeout": 1800000,
-            "enableMediaUpload": true,
-            "systemPrompt": "",
-            "dmPolicy": "open",
-            "groupPolicy": "open",
-            "debug": false
-          }
-        }
-      }
-    ]
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "dingtalk",
+      "label": "DingTalk",
+      "selectionLabel": "DingTalk (钉钉)",
+      "docsPath": "/channels/dingtalk",
+      "docsLabel": "dingtalk",
+      "blurb": "DingTalk enterprise messaging with AI Card streaming support.",
+      "aliases": [
+        "钉钉"
+      ],
+      "order": 60
+    },
+    "install": {
+      "npmSpec": "moltbot-dingtalk",
+      "localPath": ".",
+      "defaultChoice": "npm"
+    }
   },
   "dependencies": {
     "axios": "^1.13.4",
