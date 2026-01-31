@@ -15,9 +15,18 @@ export interface DingTalkConfig {
   requireMention?: boolean;
 }
 
+export interface ResolvedDingTalkAccount {
+  accountId: string;
+  enabled: boolean;
+  configured: boolean;
+  appKey?: string;
+}
+
+export type DingTalkConversationType = "1" | "2"; // 1 = DM, 2 = Group
+
 export interface DingTalkMessage {
   conversationId: string;
-  conversationType: "1" | "2";
+  conversationType: DingTalkConversationType;
   senderId: string;
   senderNick: string;
   content: {
@@ -32,6 +41,29 @@ export interface DingTalkMessage {
   conversationTitle: string;
 }
 
+export interface DingTalkMessageContext {
+  conversationId: string;
+  conversationType: DingTalkConversationType;
+  senderId: string;
+  senderNick?: string;
+  msgId: string;
+  content: string;
+  mentionedBot: boolean;
+  conversationTitle?: string;
+  createdAt: number;
+}
+
+export interface DingTalkSendResult {
+  msgId: string;
+  conversationId: string;
+}
+
+export interface DingTalkOutboundMessage {
+  conversationId: string;
+  msgType: "text" | "markdown" | "interactiveCard";
+  content: string;
+}
+
 export interface DingTalkRuntime {
   config: DingTalkConfig;
   logger: {
@@ -40,4 +72,25 @@ export interface DingTalkRuntime {
     error: (...args: unknown[]) => void;
     debug: (...args: unknown[]) => void;
   };
+}
+
+// WebSocket event types
+export interface DingTalkWSMessageEvent {
+  eventType: string;
+  msgId: string;
+  conversationId: string;
+  conversationType: DingTalkConversationType;
+  senderId: string;
+  senderNick: string;
+  content: {
+    text?: string;
+    markdown?: string;
+  };
+  createAt: number;
+  conversationTitle?: string;
+}
+
+export interface DingTalkWSEvent {
+  type: string;
+  data: DingTalkWSMessageEvent;
 }

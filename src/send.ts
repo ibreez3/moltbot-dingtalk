@@ -1,5 +1,10 @@
-import type { DingTalkConfig } from "./types.js";
-import { getDingTalkRuntime } from "./runtime.js";
+import type { DingTalkConfig, DingTalkSendResult } from "./types.js";
+import {
+  sendMessageDingTalk as sendMessageOutbound,
+  sendTextDingTalk,
+  sendMarkdownDingTalk,
+  sendCardDingTalk,
+} from "./outbound.js";
 
 export interface SendMessageParams {
   cfg: DingTalkConfig;
@@ -9,24 +14,29 @@ export interface SendMessageParams {
     title: string;
     text: string;
   };
+  card?: any;
 }
 
+/**
+ * Send message to DingTalk (convenience wrapper)
+ */
 export async function sendMessageDingTalk({
   cfg,
   to,
   text,
   markdown,
-}: SendMessageParams): Promise<void> {
-  const runtime = getDingTalkRuntime();
-
-  // TODO: Implement actual DingTalk message sending
-  runtime.logger.info(`Sending message to DingTalk: ${to}`);
-
-  if (text) {
-    runtime.logger.debug(`Message text: ${text}`);
-  }
-
-  if (markdown) {
-    runtime.logger.debug(`Message markdown: ${markdown.title}`);
-  }
+  card,
+}: SendMessageParams): Promise<DingTalkSendResult> {
+  return sendMessageOutbound({
+    cfg,
+    conversationId: to,
+    text,
+    markdown,
+    card,
+  });
 }
+
+// Re-export for direct access
+export { sendTextDingTalk, sendMarkdownDingTalk, sendCardDingTalk };
+export type { DingTalkSendResult };
+

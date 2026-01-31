@@ -12,3 +12,7 @@ export function getDingTalkRuntime(): DingTalkRuntime {
   }
   return runtime;
 }
+
+export function isDingTalkRuntimeInitialized(): boolean {
+  return runtime !== null;
+}

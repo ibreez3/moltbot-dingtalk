@@ -3,8 +3,9 @@ import {
   DEFAULT_ACCOUNT_ID,
   PAIRING_APPROVED_MESSAGE,
 } from "openclaw/plugin-sdk";
-import type { DingTalkConfig } from "./types.js";
+import type { DingTalkConfig, ResolvedDingTalkAccount } from "./types.js";
 import { sendMessageDingTalk } from "./send.js";
+import { startDingTalkBot, stopDingTalkBot, setDingTalkBotEnv } from "./bot.js";
 
 const meta = {
   id: "dingtalk",
@@ -17,7 +18,7 @@ const meta = {
   order: 60,
 } as const;
 
-export const dingtalkPlugin: ChannelPlugin<DingTalkConfig> = {
+export const dingtalkPlugin: ChannelPlugin<ResolvedDingTalkAccount> = {
   id: "dingtalk",
   meta: {
     ...meta,
@@ -41,7 +42,7 @@ export const dingtalkPlugin: ChannelPlugin<DingTalkConfig> = {
     media: true,
     reactions: false,
     edit: false,
-    reply: false,
+    reply: true,
   },
   agentPrompt: {
     messageToolHints: () => [
@@ -99,21 +100,46 @@ export const dingtalkPlugin: ChannelPlugin<DingTalkConfig> = {
   },
   config: {
     listAccountIds: () => [DEFAULT_ACCOUNT_ID],
-    resolveAccount: (cfg) => ({
-      id: DEFAULT_ACCOUNT_ID,
-      type: "dingtalk",
-      ...cfg.channels?.dingtalk,
-    }),
+    resolveAccount: (cfg) => {
+      const dingtalkCfg = cfg.channels?.dingtalk;
+      const configured = !!(dingtalkCfg?.appKey && dingtalkCfg?.appSecret);
+
+      return {
+        accountId: DEFAULT_ACCOUNT_ID,
+        type: "dingtalk",
+        enabled: dingtalkCfg?.enabled ?? false,
+        configured,
+        appKey: dingtalkCfg?.appKey,
+      } as ResolvedDingTalkAccount;
+    },
     defaultAccountId: () => DEFAULT_ACCOUNT_ID,
     setAccountEnabled: ({ cfg, enabled }) => ({
       ...cfg,
       channels: {
         ...cfg.channels,
-        dingchat: {
+        dingtalk: {
           ...cfg.channels?.dingtalk,
           enabled,
         },
       },
     }),
+  },
+  start: async ({ api, account }) => {
+    if (!account.configured) {
+      api.logger.warn("[DingTalk] Account not configured, skipping start");
+      return;
+    }
+
+    // Set runtime environment for bot
+    setDingTalkBotEnv(api.runtime);
+
+    // Start WebSocket connection
+    await startDingTalkBot(account as any);
+
+    api.logger.info("[DingTalk] Plugin started");
+  },
+  stop: async ({ api }) => {
+    await stopDingTalkBot();
+    api.logger.info("[DingTalk] Plugin stopped");
   },
 };
