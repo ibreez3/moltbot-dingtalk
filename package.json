@@ -25,24 +25,7 @@
   "openclaw": {
     "extensions": [
       "./index.ts"
-    ],
-    "channel": {
-      "id": "dingtalk",
-      "label": "DingTalk",
-      "selectionLabel": "DingTalk (钉钉)",
-      "docsPath": "/channels/dingtalk",
-      "docsLabel": "dingtalk",
-      "blurb": "DingTalk enterprise messaging with AI Card streaming support.",
-      "aliases": [
-        "钉钉"
-      ],
-      "order": 60
-    },
-    "install": {
-      "npmSpec": "moltbot-dingtalk",
-      "localPath": ".",
-      "defaultChoice": "npm"
-    }
+    ]
   },
   "dependencies": {
     "axios": "^1.13.4",
