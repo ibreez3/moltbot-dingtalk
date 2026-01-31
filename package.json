@@ -34,6 +34,54 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "openclaw": {
+    "type": "channel",
+    "name": "dingtalk",
+    "displayName": "DingTalk Channel",
+    "description": "DingTalk enterprise app bot with AI Card streaming and session management",
+    "version": "1.0.0",
+    "entry": "dist/index.js",
+    "config": {
+      "dingtalk": {
+        "enabled": true,
+        "clientId": "",
+        "clientSecret": "",
+        "gatewayToken": "",
+        "gatewayPassword": "",
+        "sessionTimeout": 1800000,
+        "enableMediaUpload": true,
+        "systemPrompt": "",
+        "dmPolicy": "open",
+        "groupPolicy": "open",
+        "debug": false
+      }
+    }
+  },
+  "openclaw.extensions": {
+    "channels": [
+      {
+        "type": "dingtalk",
+        "name": "dingtalk",
+        "description": "DingTalk enterprise app bot channel",
+        "enabled": true,
+        "config": {
+          "dingtalk": {
+            "enabled": true,
+            "clientId": "",
+            "clientSecret": "",
+            "gatewayToken": "",
+            "gatewayPassword": "",
+            "sessionTimeout": 1800000,
+            "enableMediaUpload": true,
+            "systemPrompt": "",
+            "dmPolicy": "open",
+            "groupPolicy": "open",
+            "debug": false
+          }
+        }
+      }
+    ]
+  },
   "dependencies": {
     "axios": "^1.13.4",
     "dotenv": "^17.2.3",
