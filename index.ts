@@ -48,8 +48,7 @@ export type {
   DingTalkSendResult,
   DingTalkOutboundMessage,
   DingTalkRuntime,
-  DingTalkWSMessageEvent,
-  DingTalkWSEvent,
+  DingTalkStreamMessage,
 } from "./src/types.js";
 
 const plugin = {

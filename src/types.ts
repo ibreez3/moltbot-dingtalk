@@ -74,23 +74,18 @@ export interface DingTalkRuntime {
   };
 }
 
-// WebSocket event types
-export interface DingTalkWSMessageEvent {
-  eventType: string;
-  msgId: string;
-  conversationId: string;
-  conversationType: DingTalkConversationType;
-  senderId: string;
-  senderNick: string;
-  content: {
-    text?: string;
-    markdown?: string;
+// WebSocket event types (Stream protocol)
+export interface DingTalkStreamMessage {
+  specVersion: string;
+  type: "SYSTEM" | "EVENT" | "CALLBACK";
+  headers: {
+    topic: string;
+    messageId: string;
+    contentType: string;
+    time: string;
+    appId?: string;
+    eventType?: string;
+    eventId?: string;
   };
-  createAt: number;
-  conversationTitle?: string;
-}
-
-export interface DingTalkWSEvent {
-  type: string;
-  data: DingTalkWSMessageEvent;
+  data: string;
 }

@@ -4,11 +4,35 @@ import { DingTalkConfig } from "./types.js";
 import { ensureDingTalkCredentials } from "./accounts.js";
 
 const DINGTALK_API_BASE = "https://api.dingtalk.com";
-const DINGTALK_WS_BASE = "wss://ai-protocol-x.dingtalk.ai";
 
-interface AccessTokenResponse {
-  accessToken: string;
-  expireIn: number;
+interface RegisterConnectionResponse {
+  endpoint: string;
+  ticket: string;
+}
+
+interface DingTalkStreamMessage {
+  specVersion: string;
+  type: "SYSTEM" | "EVENT" | "CALLBACK";
+  headers: {
+    topic: string;
+    messageId: string;
+    contentType: string;
+    time: string;
+    appId?: string;
+    eventType?: string;
+    eventId?: string;
+  };
+  data: string;
+}
+
+interface DingTalkStreamResponse {
+  code: number;
+  message: string;
+  headers: {
+    messageId: string;
+    contentType: string;
+  };
+  data: string;
 }
 
 export class DingTalkClient {
@@ -34,22 +58,20 @@ export class DingTalkClient {
    * Get access token for API calls
    */
   private async getAccessToken(): Promise<string> {
-    // Return cached token if still valid
     if (this.accessToken && Date.now() < this.tokenExpireAt) {
       return this.accessToken;
     }
 
-    const response = await this.axiosInstance.post<AccessTokenResponse>(
-      "/v1.0/oauth2/accessToken",
-      {
-        appKey: this.appKey,
-        appSecret: this.appSecret,
-      },
-    );
+    const response = await this.axiosInstance.post<{
+      accessToken: string;
+      expireIn: number;
+    }>("/v1.0/oauth2/accessToken", {
+      appKey: this.appKey,
+      appSecret: this.appSecret,
+    });
 
     if (response.data.accessToken) {
       this.accessToken = response.data.accessToken;
-      // Set expiry to 5 minutes before actual expiry for safety
       this.tokenExpireAt = Date.now() + (response.data.expireIn - 300) * 1000;
       return this.accessToken;
     }
@@ -98,35 +120,6 @@ export class DingTalkClient {
   }
 
   /**
-   * Get message by ID
-   */
-  async getMessage(messageId: string): Promise<any> {
-    return this.request("GET", `/v1.0/robot/messages/${messageId}`);
-  }
-
-  /**
-   * Upload media file
-   */
-  async uploadMedia(file: Buffer, fileName: string): Promise<any> {
-    const token = await this.getAccessToken();
-
-    const formData = new FormData();
-    formData.append("media", new Blob([file]), fileName);
-
-    const response = await axios.post(
-      `${DINGTALK_API_BASE}/v1.0/media/upload`,
-      formData,
-      {
-        headers: {
-          "x-acs-dingtalk-access-token": token,
-        },
-      },
-    );
-
-    return response.data;
-  }
-
-  /**
    * Get bot info
    */
   async getBotInfo(): Promise<any> {
@@ -135,68 +128,181 @@ export class DingTalkClient {
 }
 
 /**
- * DingTalk WebSocket client for receiving messages
+ * DingTalk Stream WebSocket client for receiving messages
  */
 export class DingTalkWSClient {
   private ws: WebSocket | null = null;
   private appKey: string;
   private appSecret: string;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
-  private messageHandler: ((data: any) => void) | null = null;
+  private maxReconnectAttempts = 10;
+  private reconnectDelay = 2000;
+  private messageHandlers: Map<string, (data: DingTalkStreamMessage) => void> = new Map();
+  private runtimeLogger: any = null;
 
-  constructor(cfg: DingTalkConfig) {
+  constructor(cfg: DingTalkConfig, logger?: any) {
     const creds = ensureDingTalkCredentials(cfg);
     this.appKey = creds.appKey;
     this.appSecret = creds.appSecret;
+    this.runtimeLogger = logger || console;
+  }
+
+  /**
+   * Register Stream connection and get WebSocket endpoint
+   */
+  private async registerConnection(): Promise<{ endpoint: string; ticket: string }> {
+    const response = await axios.post<RegisterConnectionResponse>(
+      `${DINGTALK_API_BASE}/v1.0/gateway/connections/open`,
+      {
+        clientId: this.appKey,
+        clientSecret: this.appSecret,
+        subscriptions: [
+          {
+            topic: "*",
+            type: "EVENT",
+          },
+          {
+            topic: "/v1.0/im/bot/messages/get",
+            type: "CALLBACK",
+          },
+        ],
+        ua: "moltbot-dingtalk/1.0.0",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return {
+      endpoint: response.data.endpoint,
+      ticket: response.data.ticket,
+    };
   }
 
   /**
    * Connect to WebSocket
    */
-  connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        const url = `${DINGTALK_WS_BASE}?appKey=${encodeURIComponent(this.appKey)}`;
+  async connect(): Promise<void> {
+    try {
+      const { endpoint, ticket } = await this.registerConnection();
 
-        this.ws = new WebSocket(url, {
-          headers: {
-            "app-Key": this.appKey,
-            "app-Secret": this.appSecret,
-          },
-        });
+      this.runtimeLogger.info(`[DingTalk] Connecting to WebSocket: ${endpoint}`);
+
+      this.ws = new WebSocket(`${endpoint}?ticket=${ticket}`);
+
+      return new Promise((resolve, reject) => {
+        if (!this.ws) return reject(new Error("WebSocket not initialized"));
 
         this.ws.on("open", () => {
-          console.log("[DingTalk] WebSocket connected");
+          this.runtimeLogger.info("[DingTalk] WebSocket connected");
           this.reconnectAttempts = 0;
           resolve();
         });
 
         this.ws.on("message", (data: Buffer) => {
-          try {
-            const message = JSON.parse(data.toString());
-            if (this.messageHandler) {
-              this.messageHandler(message);
-            }
-          } catch (err) {
-            console.error("[DingTalk] Failed to parse WebSocket message:", err);
-          }
+          this.handleMessage(data);
         });
 
         this.ws.on("error", (err) => {
-          console.error("[DingTalk] WebSocket error:", err);
+          this.runtimeLogger.error("[DingTalk] WebSocket error:", err);
           reject(err);
         });
 
         this.ws.on("close", () => {
-          console.log("[DingTalk] WebSocket closed");
+          this.runtimeLogger.warn("[DingTalk] WebSocket closed");
           this.scheduleReconnect();
         });
-      } catch (err) {
-        reject(err);
+
+        // Connection timeout
+        setTimeout(() => {
+          if (this.ws?.readyState !== WebSocket.OPEN) {
+            reject(new Error("WebSocket connection timeout"));
+          }
+        }, 30000);
+      });
+    } catch (err) {
+      this.runtimeLogger.error("[DingTalk] Failed to connect:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Handle incoming WebSocket message
+   */
+  private handleMessage(data: Buffer): void {
+    try {
+      const message: DingTalkStreamMessage = JSON.parse(data.toString());
+      const { type, headers, messageId } = message;
+
+      this.runtimeLogger.debug(`[DingTalk] Received ${type} message: ${headers.topic}`);
+
+      // Send ACK response
+      this.sendAck(messageId, type, headers.topic);
+
+      // Route to handlers based on type
+      if (type === "SYSTEM") {
+        this.handleSystemMessage(message);
+      } else if (type === "CALLBACK") {
+        const handler = this.messageHandlers.get(headers.topic);
+        if (handler) {
+          handler(message);
+        }
+      } else if (type === "EVENT") {
+        const handler = this.messageHandlers.get("*");
+        if (handler) {
+          handler(message);
+        }
       }
-    });
+    } catch (err) {
+      this.runtimeLogger.error("[DingTalk] Failed to handle message:", err);
+    }
+  }
+
+  /**
+   * Send ACK response
+   */
+  private sendAck(messageId: string, type: string, topic: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const response: DingTalkStreamResponse = {
+      code: 200,
+      message: "OK",
+      headers: {
+        messageId,
+        contentType: "application/json",
+      },
+      data: type === "EVENT" ? JSON.stringify({ status: "SUCCESS", message: "success" }) : JSON.stringify({ response: null }),
+    };
+
+    this.ws.send(JSON.stringify(response));
+  }
+
+  /**
+   * Handle system messages (ping, disconnect)
+   */
+  private handleSystemMessage(message: DingTalkStreamMessage): void {
+    const { topic } = message.headers;
+
+    if (topic === "ping") {
+      // Ping is handled by sendAck
+      this.runtimeLogger.debug("[DingTalk] Received ping");
+    } else if (topic === "disconnect") {
+      this.runtimeLogger.warn("[DingTalk] Received disconnect, reconnecting in 10s...");
+      setTimeout(() => {
+        this.scheduleReconnect();
+      }, 10000);
+    }
+  }
+
+  /**
+   * Register message handler for a topic
+   */
+  onMessage(topic: string, handler: (data: DingTalkStreamMessage) => void): void {
+    this.messageHandlers.set(topic, handler);
   }
 
   /**
@@ -204,27 +310,20 @@ export class DingTalkWSClient {
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("[DingTalk] Max reconnection attempts reached");
+      this.runtimeLogger.error("[DingTalk] Max reconnection attempts reached");
       return;
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    const delay = this.reconnectDelay * Math.min(2, Math.pow(1.5, this.reconnectAttempts - 1));
 
-    console.log(`[DingTalk] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    this.runtimeLogger.info(`[DingTalk] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
     setTimeout(() => {
       this.connect().catch((err) => {
-        console.error("[DingTalk] Reconnection failed:", err);
+        this.runtimeLogger.error("[DingTalk] Reconnection failed:", err);
       });
     }, delay);
-  }
-
-  /**
-   * Set message handler
-   */
-  onMessage(handler: (data: any) => void): void {
-    this.messageHandler = handler;
   }
 
   /**
@@ -235,6 +334,7 @@ export class DingTalkWSClient {
       this.ws.close();
       this.ws = null;
     }
+    this.messageHandlers.clear();
   }
 }
 
@@ -260,8 +360,8 @@ export function createDingTalkClient(cfg: DingTalkConfig): DingTalkClient {
   return client;
 }
 
-export function createDingTalkWSClient(cfg: DingTalkConfig): DingTalkWSClient {
-  return new DingTalkWSClient(cfg);
+export function createDingTalkWSClient(cfg: DingTalkConfig, logger?: any): DingTalkWSClient {
+  return new DingTalkWSClient(cfg, logger);
 }
 
 export function clearClientCache() {
