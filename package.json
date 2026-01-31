@@ -1,0 +1,43 @@
+{
+  "name": "moltbot-dingtalk",
+  "version": "1.0.0",
+  "description": "MoltBot Channel for DingTalk - WebSocket bridge for DingTalk enterprise bot",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "moltbot",
+    "dingtalk",
+    "websocket",
+    "bot",
+    "stream"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.4",
+    "dotenv": "^17.2.3",
+    "form-data": "^4.0.5",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/form-data": "^2.2.1",
+    "@types/node": "^25.1.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
