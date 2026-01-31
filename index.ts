@@ -7,7 +7,7 @@ export { sendMessageDingTalk } from "./src/send.js";
 export { dingtalkPlugin } from "./src/channel.js";
 
 const plugin = {
-  id: "dingtalk",
+  id: "moltbot-dingtalk",
   name: "DingTalk",
   description: "DingTalk enterprise messaging with AI Card streaming support.",
   configSchema: emptyPluginConfigSchema(),

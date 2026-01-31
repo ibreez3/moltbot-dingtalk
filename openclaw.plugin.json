@@ -1,5 +1,5 @@
 {
-  "id": "dingtalk",
+  "id": "moltbot-dingtalk",
   "channels": ["dingtalk"],
   "configSchema": {
     "type": "object",
